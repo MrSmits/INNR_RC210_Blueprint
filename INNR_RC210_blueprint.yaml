@@ -60,6 +60,11 @@ blueprint:
           default: []
           selector:
             action: 
+        long_fixed:
+          name: Action for 'Long press' press of center button
+          default: []
+          selector:
+            action: 
 
 # device_attr(device_id, 'identifiers') | first | last }}    #gets IEEE from device id
 
@@ -78,7 +83,13 @@ triggers:
       command: "off"
     id: off_press
     alias: off press on/off
-
+  - trigger: event
+    event_type: zha_event
+    event_data:
+      device_id: !input remote_device_id
+      command: "move"
+    id: long_press
+    alias: Long press on/off
 conditions: []
 
 variables:
@@ -96,5 +107,7 @@ actions:
                 sequence: !input on_fixed
               - conditions: "{{trigger.id == 'off_press'}}"
                 sequence: !input off_fixed
+              - conditions: "{{trigger.id == 'long_press'}}"
+                sequence: !input long_fixed
 mode: queued
 max: 5
