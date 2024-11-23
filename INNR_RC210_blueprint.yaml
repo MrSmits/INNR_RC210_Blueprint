@@ -1,0 +1,100 @@
+#A blueprint for Home Assistant to use the INNR RC210 remote
+#By Mr. Smits
+#Version 0.1, November 2024
+#This blueprint is open source software distributed under the GPLV3 license
+
+blueprint:
+  domain: automation
+  name: INNR RC210 smart button blueprint
+  description: >-
+    Blueprint that puts the INNR RC210 one button remote to use for different scenarios.
+  author: Mr. Smits
+  homeassistant:
+    min_version: 2024.10.0 # uses modern script syntax with actions, triggers etc so I think this is necessary
+  input:
+    action_type:
+      name: Action type
+      selector:
+        select:
+          multiple: false
+          options:
+            - label: Fixed action per button
+              value: fix
+    remote_device_id:
+      name: Remote device
+      selector:
+        device:
+          filter:
+            - integration: "zha"
+              manufacturer: "innr"
+              model: "RC 210"
+    input_helper:
+      name: input helper
+      selector:
+        entity:
+          filter:
+            - domain: input_text
+    light_target:
+      name: Light(s) to affect. To avoid errors, even if you do not use this for lights, please select a valid target here.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: light
+          multiple: true
+    fixed_section:
+      name: Fixed action settings
+      description: >-
+        This is for always doing the same action for each individual button, regardless of the history. 
+        Assign a scene to each button, use it to control a media player, anything you want. 
+        Use your imagination!
+      collapsed: true
+      input:
+        on_fixed:
+          name: Action for 'On' press of center button
+          default: []
+          selector:
+            action:
+        off_fixed:
+          name: Action for 'Off' press of center button
+          default: []
+          selector:
+            action: 
+
+# device_attr(device_id, 'identifiers') | first | last }}    #gets IEEE from device id
+
+triggers:
+  - trigger: event
+    event_type: zha_event
+    event_data:
+      device_id: !input remote_device_id
+      command: "on"
+    id: on_press
+    alias: on press on/off
+  - trigger: event
+    event_type: zha_event
+    event_data:
+      device_id: !input remote_device_id
+      command: "off"
+    id: off_press
+    alias: off press on/off
+
+conditions: []
+
+variables:
+  action_type: !input action_type
+  input_helper: !input input_helper
+  light_target: !input light_target
+
+actions:
+  - choose:
+      # the actions for fixed button associations
+      - conditions: "{{action_type == 'fix'}}"
+        sequence:
+          - choose:
+              - conditions: "{{trigger.id == 'on_press'}}"
+                sequence: !input on_fixed
+              - conditions: "{{trigger.id == 'off_press'}}"
+                sequence: !input off_fixed
+mode: queued
+max: 5
